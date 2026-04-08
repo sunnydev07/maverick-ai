@@ -1,0 +1,23 @@
+name = "maverick-worker"
+main = "src/index.ts"
+compatibility_date = "2024-12-16"
+
+[env.production]
+name = "maverick-worker-prod"
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "your-kv-namespace-id"
+preview_id = "your-preview-kv-namespace-id"
+
+[vars]
+# Ollama defaults
+OLLAMA_BASE_URL = "http://localhost:11434"
+
+[secrets]
+# Add these via `wrangler secret put PROVIDER` 
+# Supported: claude, openrouter, ollama, gemini
+# PROVIDER = "ollama"
+# ANTHROPIC_API_KEY = ""
+# OPENROUTER_API_KEY = ""
+# GOOGLE_API_KEY = ""
