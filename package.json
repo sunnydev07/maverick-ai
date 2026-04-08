@@ -3,10 +3,6 @@
   "version": "0.1.0",
   "description": "AI-powered Windows system tray application with voice capture and LLM integration",
   "private": true,
-  "workspaces": [
-    "packages/electron",
-    "packages/worker"
-  ],
   "scripts": {
     "dev": "pnpm -r --parallel run dev",
     "build": "pnpm -r run build",
