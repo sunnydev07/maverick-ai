@@ -1,61 +1,53 @@
-# Maverick AI - Settings Panel Preview
+# Maverick AI - MVP Phase 1
 
-This is a **web-based preview** of the Maverick AI Settings Panel UI for the Windows system tray application. You can interact with all the settings controls right here in the browser.
+AI-powered Windows system tray application with voice capture and LLM integration.
 
-## What You See Here
+## Project Structure
 
-This Next.js app showcases the **Settings Panel Component** with:
-
-- LLM provider selector (Ollama, OpenRouter, Claude, Gemini)
-- Custom model name configuration
-- Hotkey recorder (click Record and press your key combo)
-- TTS voice selector with audio preview
-- Screenshot mode selector (Full Desktop / Active Window / Drag Region)
-- Conversation memory toggle (Session-only vs Saved History)
-- One-click save to browser storage
-
-## Try It Out
-
-All settings are fully interactive:
-1. Change the LLM provider and model
-2. Click "Record Hotkey" and press a keyboard combination
-3. Click the speaker icon to preview TTS voices
-4. Toggle options and click "Save Settings"
-5. Settings persist to localStorage
-
-## Full Project Documentation
-
-For the complete Electron desktop app and Cloudflare Worker API source code, see:
-
-- **QUICKSTART.md** - 5-minute setup guide
-- **ARCHITECTURE.md** - System design and component breakdown
-- **SETUP.md** - LLM provider configuration
-- **PROJECT_OVERVIEW.md** - Visual architecture and tech stack
-- **ROADMAP.md** - Phase 2+ development plans
-- **CHECKLIST.md** - QA and deployment checklist
-
-## Source Code Location
-
-The full source code for this project is documented in the accompanying markdown files. This preview focuses on the UI/UX of the Settings Panel component.
-
-### Key Technologies
-
-- **Frontend**: Next.js 16 + React 19 + TypeScript + Tailwind CSS
-- **Desktop**: Electron 41 + Vite (documented in full project)
-- **Backend**: Cloudflare Workers + Hono (documented in full project)
-- **API**: Multi-LLM provider support (Ollama, OpenRouter, Claude, Gemini)
-
-## Getting Started
-
-To preview locally:
-
-```bash
-pnpm install
-pnpm dev
+```
+maverick-ai/
+├── packages/
+│   ├── electron/          # Electron desktop app (Vite + React + TS)
+│   │   ├── src/
+│   │   │   ├── main/      # Electron main process
+│   │   │   ├── preload/   # Preload scripts (IPC bridge)
+│   │   │   └── renderer/  # React UI
+│   │   ├── vite.config.ts
+│   │   └── electron-builder.config.ts
+│   │
+│   └── worker/            # Cloudflare Worker proxy
+│       ├── src/
+│       │   ├── index.ts   # Hono routes
+│       │   ├── providers.ts  # LLM provider implementations
+│       │   └── schemas.ts    # Zod validation schemas
+│       └── wrangler.toml
+│
+└── README.md
 ```
 
-Then visit `http://localhost:3000` to interact with the Settings Panel.
+## Phase 1: MVP - Settings Panel UI
 
+### What's Included
+
+✅ **Electron App Scaffold**
+- React 19 with TypeScript
+- Tailwind CSS for styling
+- Vite as build tool
+- NSIS/Portable installers via electron-builder
+
+✅ **Settings Panel Component**
+- LLM provider dropdown (Ollama, OpenRouter, Claude, Gemini)
+- Custom model name input
+- Worker URL configuration
+- Hotkey recorder (click to record keyboard combo)
+- TTS voice selector with preview
+- Screenshot mode toggle (full/active window/region)
+- Conversation memory toggle (session/saved)
+- Settings persisted to localStorage
+
+✅ **Cloudflare Worker Proxy**
+- Hono-based API routes
+- Multi-provider LLM support:
   - **Ollama** (local inference, default)
   - **OpenRouter** (multi-model routing)
   - **Claude** (Anthropic API)
