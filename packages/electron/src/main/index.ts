@@ -1,6 +1,9 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import Store from 'electron-store'
 import { SettingsSchema, SaveSettingsResponseSchema, TestWorkerUrlResponseSchema, TestHotkeyResponseSchema } from '../shared/ipc-types'
+import { TrayManager } from './tray'
+import { HotkeyManager } from './hotkey'
+import { CaptureManager } from './capture'
 import path from 'path'
 
 // Initialize electron-store with schema validation
@@ -22,6 +25,9 @@ const store = new Store({
 })
 
 let mainWindow: BrowserWindow | null = null
+let trayManager: TrayManager | null = null
+let hotkeyManager: HotkeyManager | null = null
+let captureManager: CaptureManager | null = null
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -46,6 +52,21 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null
   })
+
+  // Initialize managers after window is created
+  trayManager = new TrayManager(mainWindow)
+  trayManager.createTray()
+
+  hotkeyManager = new HotkeyManager(mainWindow)
+  captureManager = new CaptureManager(mainWindow)
+
+  // Load settings and register hotkey
+  const settings = store.get('settings') as any
+  if (hotkeyManager && settings?.hotkeyCombo) {
+    hotkeyManager.registerHotkey(settings.hotkeyCombo)
+  } else if (hotkeyManager) {
+    hotkeyManager.registerHotkey('alt+space')
+  }
 }
 
 // IPC Handlers
@@ -134,9 +155,128 @@ ipcMain.handle('test-hotkey', async (_event, { combo }) => {
   }
 })
 
+// Capture IPC Handlers
+
+// Start capture
+ipcMain.handle('capture:start', async (_event, { screenshotMode = 'full' } = {}) => {
+  try {
+    if (!captureManager) {
+      throw new Error('Capture manager not initialized')
+    }
+
+    console.log('[v0] Capture start requested')
+    
+    // Perform capture
+    const result = await captureManager.performCapture(screenshotMode)
+
+    return {
+      success: true,
+      data: {
+        screenshotBase64: result.screenshotBase64,
+        audioBase64: result.audioBase64,
+        mode: result.mode,
+        timestamp: result.timestamp
+      }
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error('[v0] Capture error:', error)
+    
+    return {
+      success: false,
+      error: errorMessage
+    }
+  }
+})
+
+// Cancel capture
+ipcMain.handle('capture:cancel', async () => {
+  try {
+    if (!captureManager) {
+      throw new Error('Capture manager not initialized')
+    }
+
+    captureManager.cancelCapture()
+
+    return {
+      success: true,
+      message: 'Capture cancelled'
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      success: false,
+      error: errorMessage
+    }
+  }
+})
+
+// Get capture status
+ipcMain.handle('capture:status', async () => {
+  try {
+    if (!captureManager) {
+      throw new Error('Capture manager not initialized')
+    }
+
+    return {
+      isRecording: captureManager.isRecordingNow()
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      success: false,
+      error: errorMessage
+    }
+  }
+})
+
+// Register/update hotkey
+ipcMain.handle('hotkey:register', async (_event, { combo }) => {
+  try {
+    if (!hotkeyManager) {
+      throw new Error('Hotkey manager not initialized')
+    }
+
+    const success = hotkeyManager.registerHotkey(combo)
+
+    if (success) {
+      // Save to settings
+      const settings = store.get('settings') as any
+      store.set('settings', { ...settings, hotkeyCombo: combo })
+
+      return {
+        success: true,
+        message: `Hotkey registered: ${combo}`
+      }
+    } else {
+      return {
+        success: false,
+        message: 'Failed to register hotkey (may be in use by another app)'
+      }
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      success: false,
+      error: errorMessage
+    }
+  }
+})
+
 app.on('ready', createWindow)
 
 app.on('window-all-closed', () => {
+  // Cleanup
+  if (hotkeyManager) {
+    hotkeyManager.cleanup()
+  }
+  if (trayManager) {
+    trayManager.destroy()
+  }
+  if (captureManager) {
+    captureManager.cleanup()
+  }
+
   if (process.platform !== 'darwin') app.quit()
 })
 
