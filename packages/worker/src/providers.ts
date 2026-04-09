@@ -1,8 +1,45 @@
-import { LLMRequest, LLMResponse } from '../schemas'
+import { LLMRequest, LLMResponse } from './schemas'
 
 export interface LLMProvider {
   name: string
   call(request: LLMRequest, env: any): Promise<LLMResponse>
+}
+
+// Helper function: fetch with timeout
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number = 30000): Promise<Response> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal
+    })
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+// Helper function: retry logic
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  delayMs: number = 1000
+): Promise<T> {
+  let lastError: Error | null = null
+
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn()
+    } catch (error) {
+      lastError = error as Error
+      if (i < maxRetries - 1) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs * (i + 1)))
+      }
+    }
+  }
+
+  throw lastError
 }
 
 // Ollama Provider (default, local)
@@ -13,18 +50,23 @@ export class OllamaProvider implements LLMProvider {
     const baseUrl = env.OLLAMA_BASE_URL || 'http://localhost:11434'
 
     try {
-      const response = await fetch(`${baseUrl}/api/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: request.model,
-          messages: request.messages,
-          temperature: request.temperature,
-          stream: false
-        })
-      })
+      const response = await withRetry(
+        () =>
+          fetchWithTimeout(`${baseUrl}/api/chat`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: request.model,
+              messages: request.messages,
+              temperature: request.temperature,
+              stream: false
+            })
+          }),
+        2,
+        500
+      )
 
       if (!response.ok) {
         throw new Error(`Ollama API error: ${response.statusText}`)
@@ -55,21 +97,26 @@ export class OpenRouterProvider implements LLMProvider {
     }
 
     try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-          'HTTP-Referer': 'https://maverick.ai',
-          'X-Title': 'Maverick AI'
-        },
-        body: JSON.stringify({
-          model: request.model,
-          messages: request.messages,
-          temperature: request.temperature,
-          max_tokens: request.max_tokens
-        })
-      })
+      const response = await withRetry(
+        () =>
+          fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${apiKey}`,
+              'HTTP-Referer': 'https://maverick.ai',
+              'X-Title': 'Maverick AI'
+            },
+            body: JSON.stringify({
+              model: request.model,
+              messages: request.messages,
+              temperature: request.temperature,
+              max_tokens: request.max_tokens
+            })
+          }),
+        3,
+        1000
+      )
 
       if (!response.ok) {
         throw new Error(`OpenRouter API error: ${response.statusText}`)
@@ -84,9 +131,7 @@ export class OpenRouterProvider implements LLMProvider {
       }
     } catch (error) {
       console.error('OpenRouter provider error:', error)
-      throw new Error(
-        `Failed to call OpenRouter: ${error instanceof Error ? error.message : 'Unknown error'}`
-      )
+      throw new Error(`Failed to call OpenRouter: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 }
@@ -102,19 +147,24 @@ export class ClaudeProvider implements LLMProvider {
     }
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: request.model || 'claude-opus-4.6',
-          max_tokens: request.max_tokens || 2048,
-          messages: request.messages
-        })
-      })
+      const response = await withRetry(
+        () =>
+          fetchWithTimeout('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': apiKey,
+              'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+              model: request.model || 'claude-opus-4.6',
+              max_tokens: request.max_tokens || 2048,
+              messages: request.messages
+            })
+          }),
+        3,
+        1000
+      )
 
       if (!response.ok) {
         throw new Error(`Anthropic API error: ${response.statusText}`)
@@ -129,9 +179,7 @@ export class ClaudeProvider implements LLMProvider {
       }
     } catch (error) {
       console.error('Claude provider error:', error)
-      throw new Error(
-        `Failed to call Claude: ${error instanceof Error ? error.message : 'Unknown error'}`
-      )
+      throw new Error(`Failed to call Claude: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 }
@@ -147,26 +195,31 @@ export class GeminiProvider implements LLMProvider {
     }
 
     try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${request.model || 'gemini-1.5-flash'}:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: 'user',
-                parts: [
+      const response = await withRetry(
+        () =>
+          fetchWithTimeout(
+            `https://generativelanguage.googleapis.com/v1beta/models/${request.model || 'gemini-1.5-flash'}:generateContent?key=${apiKey}`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                contents: [
                   {
-                    text: request.messages[request.messages.length - 1]?.content || ''
+                    role: 'user',
+                    parts: [
+                      {
+                        text: request.messages[request.messages.length - 1]?.content || ''
+                      }
+                    ]
                   }
                 ]
-              }
-            ]
-          })
-        }
+              })
+            }
+          ),
+        3,
+        1000
       )
 
       if (!response.ok) {
@@ -182,9 +235,7 @@ export class GeminiProvider implements LLMProvider {
       }
     } catch (error) {
       console.error('Gemini provider error:', error)
-      throw new Error(
-        `Failed to call Gemini: ${error instanceof Error ? error.message : 'Unknown error'}`
-      )
+      throw new Error(`Failed to call Gemini: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 }
@@ -202,3 +253,4 @@ export function getProvider(name: string): LLMProvider {
       return new OllamaProvider()
   }
 }
+
