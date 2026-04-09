@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
-@layer base {
-  :root {
-    --background: 7 39% 10%;
-    --foreground: 0 0% 100%;
-  }
+@theme {
+  --color-background: hsl(7 39% 10%);
+  --color-foreground: hsl(0 0% 100%);
+}
 
+@layer base {
   body {
     @apply bg-background text-foreground;
   }
