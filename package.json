@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "AI-powered Windows system tray application with voice capture and LLM integration",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
