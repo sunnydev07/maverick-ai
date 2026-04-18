@@ -5,31 +5,21 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "dev": "pnpm --recursive run dev",
+    "dev:worker": "pnpm -C packages/worker dev",
+    "dev:electron": "pnpm -C packages/electron dev",
+    "build": "pnpm --recursive run build",
+    "type-check": "pnpm --recursive run type-check",
+    "install": "pnpm install",
+    "setup": "pnpm install && pnpm build",
+    "start": "pnpm dev"
   },
-  "dependencies": {
-    "@tailwindcss/postcss": "^4.2.2",
-    "autoprefixer": "^10.4.27",
-    "electron": "^41.2.0",
-    "electron-builder": "^26.8.1",
-    "electron-store": "^11.0.2",
-    "hono": "^4.12.12",
-    "lucide-react": "^1.7.0",
-    "next": "^16.2.0",
-    "postcss": "^8.5.9",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "sharp": "^0.34.5",
-    "tailwindcss": "^4.2.2",
-    "zod": "^4.3.6"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "@types/node": "^22",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
     "typescript": "^5.7.3"
-  }
+  },
+  "workspaces": [
+    "packages/*"
+  ]
+},
 }

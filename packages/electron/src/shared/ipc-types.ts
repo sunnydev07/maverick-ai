@@ -41,6 +41,35 @@ export const TestHotkeyResponseSchema = z.object({
   conflict: boolean,
 })
 
+// Capture Schemas
+export const CaptureStartRequestSchema = z.object({
+  screenshotMode: z.enum(['full', 'active', 'region']).optional(),
+}).optional()
+
+export const CaptureStartResponseSchema = z.object({
+  success: boolean,
+  data: z.object({
+    screenshotBase64: z.string(),
+    audioBase64: z.string(),
+    mode: z.string(),
+    timestamp: z.number(),
+  }).optional(),
+  error: z.string().optional(),
+})
+
+export const CaptureStatusResponseSchema = z.object({
+  isRecording: z.boolean(),
+})
+
+export const HotkeyRegisterRequestSchema = z.object({
+  combo: z.string(),
+})
+
+export const HotkeyRegisterResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+})
+
 // IPC Channel Handlers Type
 export interface IpcChannels {
   'save-settings': {
@@ -58,5 +87,21 @@ export interface IpcChannels {
   'test-hotkey': {
     request: z.infer<typeof TestHotkeyRequestSchema>
     response: z.infer<typeof TestHotkeyResponseSchema>
+  }
+  'capture:start': {
+    request: z.infer<typeof CaptureStartRequestSchema>
+    response: z.infer<typeof CaptureStartResponseSchema>
+  }
+  'capture:cancel': {
+    request: undefined
+    response: z.object({ success: z.boolean(); message: z.string() })
+  }
+  'capture:status': {
+    request: undefined
+    response: z.infer<typeof CaptureStatusResponseSchema>
+  }
+  'hotkey:register': {
+    request: z.infer<typeof HotkeyRegisterRequestSchema>
+    response: z.infer<typeof HotkeyRegisterResponseSchema>
   }
 }

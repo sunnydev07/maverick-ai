@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import Store from 'electron-store'
-import { SettingsSchema, SaveSettingsResponseSchema, TestWorkerUrlResponseSchema, TestHotkeyResponseSchema } from '../shared/ipc-types'
+import { SettingsSchema, SaveSettingsResponseSchema, TestWorkerUrlResponseSchema, TestHotkeyResponseSchema, CaptureStartResponseSchema, CaptureStatusResponseSchema, HotkeyRegisterResponseSchema } from '../shared/ipc-types'
 import { TrayManager } from './tray'
 import { HotkeyManager } from './hotkey'
 import { CaptureManager } from './capture'
@@ -177,7 +177,7 @@ ipcMain.handle('capture:start', async (_event, { screenshotMode = 'full' } = {})
         mode: result.mode,
         timestamp: result.timestamp
       }
-    }
+    } as any
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     console.error('[v0] Capture error:', error)
