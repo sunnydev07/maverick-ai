@@ -2,6 +2,10 @@
   "name": "maverick-ai",
   "version": "0.1.0",
   "description": "AI-powered Windows system tray application with voice capture and LLM integration",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sunnydev07/maverick-ai.git"
+  },
   "private": true,
   "type": "module",
   "scripts": {
