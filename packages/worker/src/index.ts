@@ -70,6 +70,15 @@ app.get('/health', (c) => {
   })
 })
 
+// Version information endpoint
+app.get('/version', (c) => {
+  return c.json({
+    name: 'maverick-ai-worker',
+    version: '0.1.0',
+    environment: 'production',
+  })
+})
+
 // Provider diagnostics endpoint
 app.get('/health/providers', async (c) => {
   const diagnostics: Record<string, any> = {}
